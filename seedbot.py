@@ -112,7 +112,7 @@ def Handle_LFCSQueue():
         FriendList.added = [x for x in FriendList.added if x.pid != p.pid]
         logging.info("LFCS processed for %s",friend_functions.FormattedFriendCode(p.fc))
         print("LFCS processed for",friend_functions.FormattedFriendCode(p.fc))
-    for x in FriendList.lfcs[:]:
+    for x in FriendList.lfcs:
         p = x
         FriendList.lfcs.remove(x)
         if p.lfcs is None:
@@ -156,24 +156,6 @@ def Handle_ReSync():
             time.sleep(Intervals.betweenNintendoActions)
             logging.info("ReSync: Checking friend for completion, refreshing: %s",friend_functions.FormattedFriendCode(p.fc))
             p.resync_time = datetime.utcnow() + timedelta(seconds = Intervals.resync)
-#            if p.added == False:
-#                p.resync_time = datetime.utcnow() + timedelta(seconds = Intervals.resync_untilremove)
-#                logging.info("ReSync: Checking friend for completion, Adding friend back: %s",friend_functions.FormattedFriendCode(p.fc))
-#               print("[",datetime.now(),"] ReSync: Adding friend back: ",friend_functions.FormattedFriendCode(p.fc))
-#                rel = NASCClient.AddFriendPID(p.pid)
-#                p.added = True
-#                if not rel is None:
-#                    if rel.is_complete==True:
-#                        logging.warning("ReSync: Friend was completed, adding to lfcs queue: %s",friend_functions.FormattedFriendCode(p.fc))
-#                        print("[",datetime.now(),"] ReSync: Friend was completed, adding to lfcs queue: ",friend_functions.FormattedFriendCode(p.fc))
-#                       p.lfcs = rel.friend_code
-#                        FriendList.newlfcs.put(p)
-#            else:
-#                logging.info("ReSync: Checking friend for completion, Removing friend: %s",friend_functions.FormattedFriendCode(p.fc))
-#                print("[",datetime.now(),"] ReSync: Removing Friend: ",friend_functions.FormattedFriendCode(p.fc))
-#                rel = NASCClient.RemoveFriendPID(p.pid)
-#                p.added = False
-#                p.resync_time = datetime.utcnow() + timedelta(seconds = Intervals.resync_untiladd)
         
             x = NASCClient.RefreshFriendData(p.pid)
 
@@ -227,11 +209,9 @@ def HandleNewFriends():
     global FriendList, NASCClient
     FriendList.notadded = list(set(FriendList.notadded)) ## remove duplicates
     for fc in FriendList.notadded[:]:
-    #while len(FriendList.notadded) > 0:
         curFriends = [x.fc for x in FriendList.added]
         curFriends.extend([x.fc for x in FriendList.lfcs])
         curFriends.extend([friend_functions.PID2FC(x) for x in FriendList.remove])
-        #fc = FriendList.notadded[0]
         # remove from the actual list
         FriendList.notadded.remove(fc)
         # if not a valid friend, go to the next in the list
@@ -241,7 +221,6 @@ def HandleNewFriends():
         if len([x for x in curFriends if x == fc]) > 0:
             continue
         logging.info("Adding friend %s",friend_functions.FormattedFriendCode(fc))
-        #print("[",datetime.now(),"] Adding friend:",friend_functions.FormattedFriendCode(fc))
         time.sleep(Intervals.betweenNintendoActions)
         #TODO error check this vvv
         rel = NASCClient.AddFriendFC(fc)
@@ -259,7 +238,6 @@ def HandleNewFriends():
 
 def sh_thread():
     global RunSettings, NASCClient, FriendList
-    #print("Running bot as",myFriendCode[0:4]+"-"+myFriendCode[4:8]+"-"+myFriendCode[8:])
     while RunSettings.Running==True:
         try:
             if datetime.utcnow() < RunSettings.PauseUntil:
@@ -290,7 +268,7 @@ def sh_thread():
             # clist = Web.getClaimedList()
             # ## if the site doesnt have a fc as claimed, i shouldnt either
             # ## unfriend anyone on my list that the website doesnt have for me
-            # epic but movableQ does not have this functionality
+            # # epic but movableQ does not have this functionality
             # toremove=[x.pid for x in FriendList.added if x.fc not in clist]
             # for x in toremove:
             #     print("", friend_functions.FormattedFriendCode(friend_functions.PID2FC(x)), " not in claimed list");
@@ -360,7 +338,6 @@ Web = webhandler.WebsiteHandler(weburl,RunSettings.friendcode,RunSettings.active
 NASCClient.connect()
 NASCClient.SetNotificationHandler(NotificationHandler)
 
-#all = client.get_all_friends()
 ## add current friends to list
 flist = []
 flist.extend(NASCClient.GetAllFriends())

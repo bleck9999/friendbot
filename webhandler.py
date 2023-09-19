@@ -24,7 +24,7 @@ class WebsiteHandler():
         self.ErrorCount=0
 
     def BottersOnlineCount(self):
-        # movableq  does not have a botters online count at this time
+        # movableq does not have a botters online count at this time
         return 1
         # try:
         #     botter_list = requests.get(self.url+"/botters.php")
@@ -87,6 +87,7 @@ class WebsiteHandler():
                     print("[",datetime.now(),"] WebHandler: KeyError on LFCS upload, assuming already uploaded")
                     self._ServerSuccess()
                     return True
+                # intentional fall-through for other error 500s
             logging.warning("Server responded with HTTP code %s",lfcs_req.status_code)
             logging.warning("Server response: %s",lfcs_req.text)
             print("[",datetime.now(),"] WebHandler: Generic Connection error",lfcs_req.status_code)
@@ -99,18 +100,17 @@ class WebsiteHandler():
         return False
 
     def TimeoutFC(self,fc):
-        timeout_req = requests.get(self.url+f"/fail_job/{fc}", json={'name': self.myFC, 'note': "friendbot timeout"})
+        timeout_req = requests.get(self.url+f"/fail_job/{fc}", json={"name": self.myFC, "note": "Failed to add friendbot within timeout period"})
         if timeout_req.status_code == 200:
             self._ServerSuccess()
-            if not timeout_req.text.startswith('error'):
-                return True
+            return True
         else:
             logging.warning("Server responded with HTTP code %s",timeout_req.status_code)
             print("[",datetime.now(),"] WebHandler: Generic Connection error",timeout_req.status_code)
             self._ServerError()
         return False
 
-    # not necessary as requesting a job claims it
+    # not necessary as requesting a job claims it automatically
     # def ClaimFC(self,fc):
     #     resp = requests.get(self.url+"/claimfc.php",params={'fc':fc,'me':self.myFC})
     #     if resp.status_code == 200:
@@ -122,12 +122,24 @@ class WebsiteHandler():
     #         print("[",datetime.now(),"] Generic Connection issue:",resp.status_code)
     #         self._ServerError()
     #     return False
+
+    def CancelFC(self, fc):
+        reset_req = requests.get(self.url + f"/api/cancel_job/{fc}", params={'name': self.myFC})
+        if reset_req.status_code == 200:
+            self._ServerSuccess()
+            return True
+        else:
+            logging.warning("Server responded with HTTP code %s", reset_req.status_code)
+            print("[", datetime.now(), "] WebHandler: Generic Connection error", reset_req.status_code)
+            self._ServerError()
+        return False
     def ResetFC(self, fc):
+        if not self.CancelFC(fc):
+            return False
         reset_req = requests.get(self.url+f"/api/reset_job/{fc}", params={'name': self.myFC})
         if reset_req.status_code == 200:
             self._ServerSuccess()
-            # if not reset_req.text.startswith('error'):
-            #     return True
+            return True
         else:
             logging.warning("Server responded with HTTP code %s",reset_req.status_code)
             print("[",datetime.now(),"] WebHandler: Generic Connection error",reset_req.status_code)
