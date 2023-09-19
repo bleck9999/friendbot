@@ -24,6 +24,7 @@ class WebsiteHandler():
         self.ErrorCount=0
 
     def BottersOnlineCount(self):
+        # movableq  does not have a botters online count at this time
         return 1
         # try:
         #     botter_list = requests.get(self.url+"/botters.php")
@@ -58,7 +59,8 @@ class WebsiteHandler():
 
     def getNewList(self):
         try:
-            fc_req = requests.get(self.url+"/api/request_job", params={'name': self.myFC, 'active': self.active, 'version': self.ver})
+            fc_req = requests.get(self.url+"/api/request_job", params={'name': self.myFC, 'active': self.active,
+                                                                       'version': self.ver, "types": "fc"})
             if fc_req.status_code == 200:
                 self._ServerSuccess()
                 req_data = fc_req.json()["data"]
@@ -78,12 +80,18 @@ class WebsiteHandler():
             lfcs_req = requests.post(self.url+f"/api/complete_job/{fc}", json={"format": "hex", "result": lfcs.hex()})
             if lfcs_req.status_code == 200:
                 self._ServerSuccess()
-            else:
-                logging.warning("Server responded with HTTP code %s",lfcs_req.status_code)
-                logging.warning("Server response: %s",lfcs_req.text)
-                print("[",datetime.now(),"] WebHandler: Generic Connection error",lfcs_req.status_code)
-                print("[",datetime.now(),"] Server response:",lfcs_req.text)
-                self._ServerError()
+                return True
+            elif lfcs_req.status_code == 500:
+                if "KeyError" in lfcs_req.json()["message"]:
+                    logging.warning("WebHandler: KeyError on LFCS upload, assuming already %s uploaded", fc)
+                    print("[",datetime.now(),"] WebHandler: KeyError on LFCS upload, assuming already uploaded")
+                    self._ServerSuccess()
+                    return True
+            logging.warning("Server responded with HTTP code %s",lfcs_req.status_code)
+            logging.warning("Server response: %s",lfcs_req.text)
+            print("[",datetime.now(),"] WebHandler: Generic Connection error",lfcs_req.status_code)
+            print("[",datetime.now(),"] Server response:",lfcs_req.text)
+            self._ServerError()
         except Exception as e:
             print("[",datetime.now(),"] Got exception!!", e,"\n",sys.exc_info()[0].__name__, sys.exc_info()[2].tb_frame.f_code.co_filename, sys.exc_info()[2].tb_lineno)
             logging.error("Exception found: %s\n%s\n%s\n%s",e,sys.exc_info()[0].__name__, sys.exc_info()[2].tb_frame.f_code.co_filename, sys.exc_info()[2].tb_lineno)
@@ -101,7 +109,7 @@ class WebsiteHandler():
             print("[",datetime.now(),"] WebHandler: Generic Connection error",timeout_req.status_code)
             self._ServerError()
         return False
-    
+
     # not necessary as requesting a job claims it
     # def ClaimFC(self,fc):
     #     resp = requests.get(self.url+"/claimfc.php",params={'fc':fc,'me':self.myFC})
