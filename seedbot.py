@@ -24,7 +24,7 @@ logging.info("Starting App");
 class cSettings(object):
     def __init__(self,pid,lfcs):
         self.UI = False
-        self.version = 0x200
+        self.version = "friendbot1.0.0"
         self.active=1
         self.friendcode = friend_functions.PID2FC(pid)
         self.pid = pid
@@ -59,7 +59,7 @@ class Intervals(Const):
 identity_path = "identity.yaml"
 if len(sys.argv) >= 2:
     identity_path = sys.argv[1]
-identity = yaml.load(open(identity_path, 'r'))
+identity = yaml.safe_load(open(identity_path, 'r'))
 
 
 ###################################### VARIABLES AND SHIT
@@ -68,7 +68,7 @@ RunSettings = cSettings(identity['user_id'],identity['lfcs'])
 FriendList = friend_functions.FLists()
 NASCClient = friend_functions.NASCInteractor(identity)
 
-weburl = "http://part1dumper.mechanicaldragon.xyz"
+weburl = "http://localhost:7799"
 
 random_games =  [
     # Skylanders games
@@ -121,7 +121,8 @@ def Handle_LFCSQueue():
                 FriendList.lfcs.append(p)
                 continue
             p.lfcs=rel.friend_code
-        if Web.UpdateLFCS(p.fc,p.lfcs) == False:
+        lfcs_bytes = p.lfcs.to_bytes(8, "little")[:5]
+        if Web.UpdateLFCS(p.fc,lfcs_bytes) == False:
             logging.warning("LFCS failed to upload for %s",friend_functions.FormattedFriendCode(p.fc))
             print("LFCS failed to uploaded for fc",friend_functions.FormattedFriendCode(p.fc))
             FriendList.lfcs.append(p)
@@ -261,7 +262,6 @@ def sh_thread():
     #print("Running bot as",myFriendCode[0:4]+"-"+myFriendCode[4:8]+"-"+myFriendCode[8:])
     while RunSettings.Running==True:
         try:
-            
             if datetime.utcnow() < RunSettings.PauseUntil:
                 continue
             if not Web.IsConnected():
@@ -287,26 +287,27 @@ def sh_thread():
                 print("Server Errors exceeded threshold. Exiting")
                 RunSettings.Running = False
                 continue
-            clist = Web.getClaimedList()
-            ## if the site doesnt have a fc as claimed, i shouldnt either
-            ## unfriend anyone on my list that the website doesnt have for me
-            toremove=[x.pid for x in FriendList.added if x.fc not in clist]
-            for x in toremove:
-                print("", friend_functions.FormattedFriendCode(friend_functions.PID2FC(x)), " not in claimed list");
-                logging.warning("%s not in claimed list",friend_functions.FormattedFriendCode(friend_functions.PID2FC(x)))
-            FriendList.remove.extend(toremove)
+            # clist = Web.getClaimedList()
+            # ## if the site doesnt have a fc as claimed, i shouldnt either
+            # ## unfriend anyone on my list that the website doesnt have for me
+            # epic but movableQ does not have this functionality
+            # toremove=[x.pid for x in FriendList.added if x.fc not in clist]
+            # for x in toremove:
+            #     print("", friend_functions.FormattedFriendCode(friend_functions.PID2FC(x)), " not in claimed list");
+            #     logging.warning("%s not in claimed list",friend_functions.FormattedFriendCode(friend_functions.PID2FC(x)))
+            # FriendList.remove.extend(toremove)
             ## remove the "others" from the added friends list
-            FriendList.added = [x for x in FriendList.added if x.fc in clist]
+            # FriendList.added = [x for x in FriendList.added if x.fc in clist]
             ## compare the claimed list with the current friends lists and add new friends to notadded
             addedfcs = [x.fc for x in FriendList.added]
             addedfcs.extend([x for x in FriendList.notadded])
             addedfcs.extend([x.fc for x in FriendList.lfcs])
             addedfcs.extend([friend_functions.PID2FC(x) for x in FriendList.remove])
-            clist = [x for x in clist if not x in addedfcs and len(x)==12]
-            if len(clist) > 0:
-                logging.warning("%s friends already claimed, queued for adding", len(clist))
-                print (len(clist)," friends already claimed, queued for adding")
-            FriendList.notadded.extend(clist)
+            # clist = [x for x in clist if not x in addedfcs and len(x)==12]
+            # if len(clist) > 0:
+            #     logging.warning("%s friends already claimed, queued for adding", len(clist))
+            #     print (len(clist)," friends already claimed, queued for adding")
+            # FriendList.notadded.extend(clist)
             ## Receives current relationship status for all friends, then iterates through them to set the lfcs status if not currently set
             time.sleep(Intervals.between_actions)
             logging.info("Resyncing friend list")
@@ -333,10 +334,10 @@ def sh_thread():
                 #print("[",datetime.now(),"] Getting New FCs. Currently",len(FriendList.added),"added,",len(FriendList.lfcs),"lfcs")
                 nlist = Web.getNewList()
                 for x in nlist:
-                    if Web.ClaimFC(x) == True:
-                        logging.info("Claimed %s",friend_functions.FormattedFriendCode(x))
-                        print("Claimed",friend_functions.FormattedFriendCode(x))
-                        FriendList.notadded.append(x)
+                    # if Web.ClaimFC(x) == True:
+                    logging.info("Claimed %s",friend_functions.FormattedFriendCode(x))
+                    print("Claimed",friend_functions.FormattedFriendCode(x))
+                    FriendList.notadded.append(x)
                 RunSettings.WaitForFriending = datetime.utcnow()+timedelta(seconds=Intervals.get_friends)
             if len(FriendList.notadded) > 0:
                 logging.info("%s new FCs to process", len(FriendList.notadded))
@@ -356,7 +357,6 @@ if RunSettings.UI == False:
     print("\n\n********** Type \'q\' and press enter to quit at any time **************\n\n")
 
 Web = webhandler.WebsiteHandler(weburl,RunSettings.friendcode,RunSettings.active,RunSettings.version)
-Web.ResetBotSettings()
 NASCClient.connect()
 NASCClient.SetNotificationHandler(NotificationHandler)
 
