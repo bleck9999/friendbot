@@ -24,7 +24,7 @@ logging.info("Starting App");
 class cSettings(object):
     def __init__(self,pid,lfcs):
         self.UI = False
-        self.version = "friendbot1.0.0"
+        self.version = "friendbot-1.0.0"
         self.active=1
         self.friendcode = friend_functions.PID2FC(pid)
         self.pid = pid
