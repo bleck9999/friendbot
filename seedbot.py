@@ -265,27 +265,26 @@ def sh_thread():
                 print("Server Errors exceeded threshold. Exiting")
                 RunSettings.Running = False
                 continue
-            # clist = Web.getClaimedList()
-            # ## if the site doesnt have a fc as claimed, i shouldnt either
-            # ## unfriend anyone on my list that the website doesnt have for me
-            # # epic but movableQ does not have this functionality
-            # toremove=[x.pid for x in FriendList.added if x.fc not in clist]
-            # for x in toremove:
-            #     print("", friend_functions.FormattedFriendCode(friend_functions.PID2FC(x)), " not in claimed list");
-            #     logging.warning("%s not in claimed list",friend_functions.FormattedFriendCode(friend_functions.PID2FC(x)))
-            # FriendList.remove.extend(toremove)
+            clist = Web.getClaimedList()
+            ## if the site doesnt have a fc as claimed, i shouldnt either
+            ## unfriend anyone on my list that the website doesnt have for me
+            toremove=[x.pid for x in FriendList.added if x.fc not in clist]
+            for x in toremove:
+                print("", friend_functions.FormattedFriendCode(friend_functions.PID2FC(x)), " not in claimed list");
+                logging.warning("%s not in claimed list",friend_functions.FormattedFriendCode(friend_functions.PID2FC(x)))
+            FriendList.remove.extend(toremove)
             ## remove the "others" from the added friends list
-            # FriendList.added = [x for x in FriendList.added if x.fc in clist]
+            FriendList.added = [x for x in FriendList.added if x.fc in clist]
             ## compare the claimed list with the current friends lists and add new friends to notadded
             addedfcs = [x.fc for x in FriendList.added]
             addedfcs.extend([x for x in FriendList.notadded])
             addedfcs.extend([x.fc for x in FriendList.lfcs])
             addedfcs.extend([friend_functions.PID2FC(x) for x in FriendList.remove])
-            # clist = [x for x in clist if not x in addedfcs and len(x)==12]
-            # if len(clist) > 0:
-            #     logging.warning("%s friends already claimed, queued for adding", len(clist))
-            #     print (len(clist)," friends already claimed, queued for adding")
-            # FriendList.notadded.extend(clist)
+            clist = [x for x in clist if not x in addedfcs and len(x)==12]
+            if len(clist) > 0:
+                logging.warning("%s friends already claimed, queued for adding", len(clist))
+                print (len(clist)," friends already claimed, queued for adding")
+            FriendList.notadded.extend(clist)
             ## Receives current relationship status for all friends, then iterates through them to set the lfcs status if not currently set
             time.sleep(Intervals.between_actions)
             logging.info("Resyncing friend list")

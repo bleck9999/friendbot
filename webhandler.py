@@ -40,20 +40,19 @@ class WebsiteHandler():
         return 0
 
 
-    # def getClaimedList(self):
-    #     try:
-    #         fc_req = requests.get(self.url+"/request_job", params={'name': self.myFC, 'version': self.ver, 'types': ['fc']})
-    #         if fc_req.status_code == 200:
-    #             if not fc_req.text.startswith('error') and not fc_req.text.startswith('nothing'):
-    #                 fc_list = [x for x in fc_req.text.split("\n") if len(x)==12]
-    #                 return fc_list
-    #             else:
-    #                 return []
-    #         else:
-    #             logging.warning("Server responded with HTTP code %s",fc_req.status_code)
-    #     except:
-    #         self._ServerError()
-    #     return []
+    def getClaimedList(self):
+        try:
+            fc_req = requests.get(self.url+"/api/list_claimed_jobs", params={'name': self.myFC, 'type': 'fc'})
+            if fc_req.status_code == 200:
+                fc_list = fc_req.json()["data"]["jobs"]
+                if fc_list:
+                    fc_list = [x["friend_code"] for x in fc_list]
+                return fc_list
+            else:
+                logging.warning("Server responded with HTTP code %s",fc_req.status_code)
+        except:
+            self._ServerError()
+        return []
 
     def getNewList(self):
         try:
