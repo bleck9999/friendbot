@@ -24,22 +24,20 @@ class WebsiteHandler():
         self.ErrorCount=0
 
     def BottersOnlineCount(self):
-        # movableq does not have a botters online count at this time
-        return 1
-        # try:
-        #     botter_list = requests.get(self.url+"/botters.php")
-        #     if botter_list.status_code == 200:
-        #         self._ServerSuccess
-        #         try:
-        #             return int(botter_list.text.split("\n")[0])
-        #         except ValueError:
-        #             return 0
-        #     else:
-        #         logging.warning("Server responded with HTTP code %s",botter_list.status_code)
-        # except Exception as e:
-        #     logging.error("Exception found: %s\n%s\n%s\n%s",e,sys.exc_info()[0].__name__, sys.exc_info()[2].tb_frame.f_code.co_filename, sys.exc_info()[2].tb_lineno)
-        # self._ServerError()
-        # return 0
+        try:
+            network_stats = requests.get(self.url+"/check_network_stats")
+            if network_stats.status_code == 200:
+                self._ServerSuccess
+                try:
+                    return int(network_stats.json()["friendbots"])
+                except ValueError:
+                    return 0
+            else:
+                logging.warning("Server responded with HTTP code %s",network_stats.status_code)
+        except Exception as e:
+            logging.error("Exception found: %s\n%s\n%s\n%s",e,sys.exc_info()[0].__name__, sys.exc_info()[2].tb_frame.f_code.co_filename, sys.exc_info()[2].tb_lineno)
+        self._ServerError()
+        return 0
 
 
     # def getClaimedList(self):
