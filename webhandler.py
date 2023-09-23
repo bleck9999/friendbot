@@ -42,7 +42,7 @@ class WebsiteHandler():
 
     def getClaimedList(self):
         try:
-            fc_req = requests.get(self.url+"/api/list_claimed_jobs", params={'name': self.myFC, 'type': 'fc'})
+            fc_req = requests.get(self.url+"/api/list_claimed_jobs", params={'name': self.myFC})
             if fc_req.status_code == 200:
                 fc_list = fc_req.json()["data"]["jobs"]
                 if fc_list:
@@ -57,7 +57,7 @@ class WebsiteHandler():
     def getNewList(self):
         try:
             fc_req = requests.get(self.url+"/api/request_job", params={'name': self.myFC, 'active': self.active,
-                                                                       'version': self.ver, "types": "fc"})
+                                                                       'version': self.ver, "types": "fc-lfcs"})
             if fc_req.status_code == 200:
                 self._ServerSuccess()
                 req_data = fc_req.json()["data"]
@@ -97,7 +97,7 @@ class WebsiteHandler():
         return False
 
     def TimeoutFC(self,fc):
-        timeout_req = requests.get(self.url+f"/fail_job/{fc}", json={"name": self.myFC, "note": "Failed to add friendbot within timeout period"})
+        timeout_req = requests.get(self.url+f"/fail_job/{fc}", json={"note": "Failed to add friendbot within timeout period"})
         if timeout_req.status_code == 200:
             self._ServerSuccess()
             return True
@@ -121,7 +121,7 @@ class WebsiteHandler():
     #     return False
 
     def CancelFC(self, fc):
-        reset_req = requests.get(self.url + f"/api/cancel_job/{fc}", params={'name': self.myFC})
+        reset_req = requests.get(self.url + f"/api/cancel_job/{fc}")
         if reset_req.status_code == 200:
             self._ServerSuccess()
             return True
@@ -133,7 +133,7 @@ class WebsiteHandler():
     def ResetFC(self, fc):
         if not self.CancelFC(fc):
             return False
-        reset_req = requests.get(self.url+f"/api/reset_job/{fc}", params={'name': self.myFC})
+        reset_req = requests.get(self.url+f"/api/reset_job/{fc}")
         if reset_req.status_code == 200:
             self._ServerSuccess()
             return True
