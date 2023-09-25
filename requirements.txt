@@ -2,4 +2,4 @@ urllib3
 pyyaml
 requests
 beautifulsoup4
-nintendoclients
+git+https://github.com/kinnay/NintendoClients.git@147390de1c8978431e01281b7e45c0f934648da1
