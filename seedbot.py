@@ -68,7 +68,7 @@ RunSettings = cSettings(identity['user_id'],identity['lfcs'])
 FriendList = friend_functions.FLists()
 NASCClient = friend_functions.NASCInteractor(identity)
 
-weburl = "http://localhost:7799"
+weburl = "https://cm360.xyz/movableq"
 
 random_games =  [
     # Skylanders games
