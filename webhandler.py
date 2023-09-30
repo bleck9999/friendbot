@@ -36,7 +36,7 @@ class WebsiteHandler():
                 logging.warning("Server responded with HTTP code %s",network_stats.status_code)
         except Exception as e:
             logging.error("Exception found: %s\n%s\n%s\n%s",e,sys.exc_info()[0].__name__, sys.exc_info()[2].tb_frame.f_code.co_filename, sys.exc_info()[2].tb_lineno)
-        self._ServerError()
+            self._ServerError()
         return 0
 
 
