@@ -97,7 +97,7 @@ class WebsiteHandler():
         return False
 
     def TimeoutFC(self,fc):
-        timeout_req = requests.get(self.url+f"/fail_job/{fc}", json={"note": "Failed to add friendbot within timeout period"})
+        timeout_req = requests.get(self.url+f"/api/fail_job/{fc}", json={"note": "Failed to add friendbot within timeout period"})
         if timeout_req.status_code == 200:
             self._ServerSuccess()
             return True
