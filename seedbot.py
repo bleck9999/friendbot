@@ -361,8 +361,11 @@ def presence_thread():
         time.sleep(30)
         if datetime.utcnow() < RunSettings.PauseUntil:
             continue
-        update_presence()
-
+        try:
+            update_presence()
+        except RuntimeError as e:
+            logging.warning("UpdatePresence failed")
+            print("UpdatePresence failed: ", e.args)
 
 
 def heartbeat_thread():
