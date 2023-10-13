@@ -30,16 +30,15 @@ class WebsiteHandler():
 
     async def BottersOnlineCount(self):
         try:
-            botter_list = await self.session.get(self.url + "/botters.php")
-            if botter_list.status == 200:
-                server_response = await botter_list.text()
-                self._ServerSuccess()
+            network_stats = await self.session.get(self.url+"/check_network_stats")
+            if network_stats.status == 200:
+                self._ServerSuccess
                 try:
-                    return int(server_response.split("\n")[0])
+                    return int(await network_stats.json()["friendbots"])
                 except ValueError:
                     return 0
             else:
-                logging.warning("Server responded with HTTP code %s", botter_list.status)
+                logging.warning("Server responded with HTTP code %s", network_stats.status)
         except Exception as e:
             logging.error("Exception found: %s\n%s\n%s\n%s", e, sys.exc_info()[0].__name__, sys.exc_info()[2].tb_frame.f_code.co_filename, sys.exc_info()[2].tb_lineno)
         self._ServerError()
@@ -47,14 +46,12 @@ class WebsiteHandler():
 
     async def getClaimedList(self):
         try:
-            fc_req = await self.session.get(self.url + "/getList.php", params={'me': self.myFC})
+            fc_req = await self.session.get(self.url+"/api/list_claimed_jobs", params={'name': self.myFC})
             if fc_req.status == 200:
-                server_response = await fc_req.text()
-                if not server_response.startswith('error') and not server_response.startswith('nothing'):
-                    fc_list = [x for x in server_response.split("\n") if len(x) == 12]
-                    return fc_list
-                else:
-                    return []
+                fc_list = await fc_req.json()["data"]["jobs"]
+                if fc_list:
+                    fc_list = [x["friend_code"] for x in fc_list]
+                return fc_list
             else:
                 logging.warning("Server responded with HTTP code %s", fc_req.status)
         except Exception:
@@ -63,16 +60,18 @@ class WebsiteHandler():
 
     async def getNewList(self):
         try:
-            fc_req = await self.session.get(self.url + "/getfcs.php", params={'me': self.myFC, 'active': self.active, 'ver': self.ver})
+            fc_req = await self.session.get(self.url+"/api/request_job",
+                                            params={'name': self.myFC, 'active': self.active,
+                                                    'version': self.ver, "types": "fc-lfcs"})
             if fc_req.status == 200:
                 self._ServerSuccess()
-                server_response = await fc_req.text()
-                if not server_response.startswith('error') and not server_response.startswith('nothing'):
-                    fc_list = [x for x in server_response.split("\n") if len(x) == 12]
+                req_data = await fc_req.json()["data"]
+                if req_data:
+                    fc_list = [req_data["friend_code"]]
                     return fc_list
             else:
-                logging.warning("Server responded with HTTP code %s", fc_req.status_code)
-                print(f"[ {datetime.now()} ] WebHandler: Generic Connection error {fc_req.status_code}")
+                logging.warning("Server responded with HTTP code %s", fc_req.status)
+                print(f"[ {datetime.now()} ] WebHandler: Generic Connection error {fc_req.status}")
                 self._ServerError()
         except Exception:
             self._ServerError()
@@ -80,12 +79,17 @@ class WebsiteHandler():
 
     async def UpdateLFCS(self, fc, lfcs):
         try:
-            lfcs_req = await self.session.get(self.url + "/setlfcs.php", params={'lfcs': '{:016x}'.format(lfcs), 'fc': fc})
+            lfcs_req = await self.session.post(self.url+f"/api/complete_job/{fc}", json={"format": "hex", "result": lfcs.hex()})
             if lfcs_req.status == 200:
                 self._ServerSuccess()
-                server_response = await lfcs_req.text()
-                if not server_response.startswith('error'):
+                return True
+            elif lfcs_req.status == 500:
+                if "KeyError" in await lfcs_req.json()["message"]:
+                    logging.warning("WebHandler: KeyError on LFCS upload, assuming already %s uploaded", fc)
+                    print("[",datetime.now(),"] WebHandler: KeyError on LFCS upload, assuming already uploaded")
+                    self._ServerSuccess()
                     return True
+                # intentional fall-through for other error 500s
             else:
                 logging.warning("Server responded with HTTP code %s", lfcs_req.status)
                 logging.warning("Server response: %s", await lfcs_req.text())
@@ -99,39 +103,46 @@ class WebsiteHandler():
         return False
 
     async def TimeoutFC(self, fc):
-        timeout_req = await self.session.get(self.url + "/timeout.php", params={'me': self.myFC, 'fc': fc})
+        timeout_req = await self.session.post(self.url+f"/api/fail_job/{fc}", json={"note": "Failed to add friendbot within timeout period"})
         if timeout_req.status == 200:
             self._ServerSuccess()
-            server_response = await timeout_req.text()
-            if not server_response.startswith('error'):
-                return True
+            return True
         else:
             logging.warning("Server responded with HTTP code %s", timeout_req.status)
             print(f"[ {datetime.now()} ] WebHandler: Generic Connection error {timeout_req.status}")
             self._ServerError()
         return False
 
-    async def ClaimFC(self, fc):
-        resp = await self.session.get(self.url + "/claimfc.php", params={'fc': fc, 'me': self.myFC})
-        if resp.status == 200:
+    # not necessary as requesting a job claims it automatically
+    # def ClaimFC(self,fc):
+    #     resp = requests.get(self.url+"/claimfc.php",params={'fc':fc,'me':self.myFC})
+    #     if resp.status_code == 200:
+    #         self._ServerSuccess()
+    #         if resp.text.startswith('success'):
+    #             return True
+    #     else:
+    #         logging.warning("Server responded with HTTP code %s",resp.status_code)
+    #         print("[",datetime.now(),"] Generic Connection issue:",resp.status_code)
+    #         self._ServerError()
+    #     return False
+
+    def CancelFC(self, fc):
+        reset_req = requests.get(self.url + f"/api/cancel_job/{fc}")
+        if reset_req.status == 200:
             self._ServerSuccess()
-            server_response = await resp.text()
-            if server_response.startswith('success'):
-                return True
+            return True
         else:
             logging.warning("Server responded with HTTP code %s", resp.status)
             print(f"[ {datetime.now()} ] Generic Connection issue: {resp.status}")
             self._ServerError()
         return False
-
     async def ResetFC(self, fc):
-        reset_req = await self.session.get(self.url + "/trustedreset.php", params={'me': self.myFC, 'fc': fc})
+        if not await self.CancelFC(fc):
+            return False
+        reset_req = await self.session.get(self.url+f"/api/reset_job/{fc}")
         if reset_req.status == 200:
             self._ServerSuccess()
-            server_response = await reset_req.text()
-            print(server_response)
-            if not server_response.startswith('error'):
-                return True
+            return True
         else:
             logging.warning("Server responded with HTTP code %s", reset_req.status)
             print(f"[ {datetime.now()} ] WebHandler: Generic Connection error {reset_req.status}")
