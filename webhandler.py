@@ -1,4 +1,5 @@
 import aiohttp
+import json
 import logging
 import sys
 from datetime import datetime
@@ -30,25 +31,25 @@ class WebsiteHandler():
 
     async def BottersOnlineCount(self):
         try:
-            network_stats = await self.session.get(self.url+"/check_network_stats")
+            network_stats = await self.session.get(self.url+"/api/check_network_stats")
             if network_stats.status == 200:
                 self._ServerSuccess
                 try:
-                    return int(await network_stats.json()["friendbots"])
+                    return int(json.loads(await network_stats.text())["data"]["friendbots"])
                 except ValueError:
                     return 0
             else:
                 logging.warning("Server responded with HTTP code %s", network_stats.status)
         except Exception as e:
             logging.error("Exception found: %s\n%s\n%s\n%s", e, sys.exc_info()[0].__name__, sys.exc_info()[2].tb_frame.f_code.co_filename, sys.exc_info()[2].tb_lineno)
-        self._ServerError()
+            self._ServerError()
         return 0
 
     async def getClaimedList(self):
         try:
             fc_req = await self.session.get(self.url+"/api/list_claimed_jobs", params={'name': self.myFC})
             if fc_req.status == 200:
-                fc_list = await fc_req.json()["data"]["jobs"]
+                fc_list = json.loads(await fc_req.text())["data"]["jobs"]
                 if fc_list:
                     fc_list = [x["friend_code"] for x in fc_list]
                 return fc_list
@@ -65,7 +66,7 @@ class WebsiteHandler():
                                                     'version': self.ver, "types": "fc-lfcs"})
             if fc_req.status == 200:
                 self._ServerSuccess()
-                req_data = await fc_req.json()["data"]
+                req_data = json.loads(await fc_req.text())["data"]
                 if req_data:
                     fc_list = [req_data["friend_code"]]
                     return fc_list
@@ -84,7 +85,7 @@ class WebsiteHandler():
                 self._ServerSuccess()
                 return True
             elif lfcs_req.status == 500:
-                if "KeyError" in await lfcs_req.json()["message"]:
+                if "KeyError" in json.loads(await lfcs_req.text())["message"]:
                     logging.warning("WebHandler: KeyError on LFCS upload, assuming already %s uploaded", fc)
                     print("[",datetime.now(),"] WebHandler: KeyError on LFCS upload, assuming already uploaded")
                     self._ServerSuccess()
@@ -126,8 +127,8 @@ class WebsiteHandler():
     #         self._ServerError()
     #     return False
 
-    def CancelFC(self, fc):
-        reset_req = requests.get(self.url + f"/api/cancel_job/{fc}")
+    async def CancelFC(self, fc):
+        reset_req = await self.session.get(self.url + f"/api/cancel_job/{fc}")
         if reset_req.status == 200:
             self._ServerSuccess()
             return True

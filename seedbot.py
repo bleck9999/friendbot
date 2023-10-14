@@ -74,7 +74,7 @@ RunSettings = cSettings(identity['user_id'], identity['lfcs'])
 FriendList = friend_functions.FLists()
 NASCClient = friend_functions.NASCInteractor(identity)
 
-weburl = "http://part1dumper.nintendohomebrew.com"
+weburl = "https://cm360.xyz/movableq"
 
 
 random_games = [
@@ -131,7 +131,8 @@ async def Handle_LFCSQueue():
                 FriendList.lfcs.append(p)
                 continue
             p.lfcs = rel.friend_code
-        if not await Web.UpdateLFCS(p.fc, p.lfcs):
+        lfcs_bytes = p.lfcs.to_bytes(8, "little")[:5]
+        if not await Web.UpdateLFCS(p.fc, lfcs_bytes):
             logging.warning("LFCS failed to upload for %s", friend_functions.FormattedFriendCode(p.fc))
             print(f"LFCS failed to uploaded for fc {friend_functions.FormattedFriendCode(p.fc)}")
             FriendList.lfcs.append(p)
@@ -347,10 +348,10 @@ async def sh_thread():
                 # print("[",datetime.now(),"] Getting New FCs. Currently",len(FriendList.added),"added,",len(FriendList.lfcs),"lfcs")
                 nlist = await Web.getNewList()
                 for x in nlist:
-                    if await Web.ClaimFC(x):
-                        logging.info("Claimed %s", friend_functions.FormattedFriendCode(x))
-                        print("Claimed", friend_functions.FormattedFriendCode(x))
-                        FriendList.notadded.append(x)
+                    # if await Web.ClaimFC(x):
+                    logging.info("Claimed %s", friend_functions.FormattedFriendCode(x))
+                    print("Claimed", friend_functions.FormattedFriendCode(x))
+                    FriendList.notadded.append(x)
                 RunSettings.WaitForFriending = datetime.utcnow() + timedelta(seconds=Intervals.get_friends)
             if len(FriendList.notadded) > 0:
                 logging.info("%s new FCs to process", len(FriendList.notadded))
@@ -366,7 +367,7 @@ async def sh_thread():
 async def presence_thread():
     global RunSettings
     if RunSettings.Running:
-        await asyncio.sleep(30)
+        await asyncio.sleep(1)
         if datetime.utcnow() < RunSettings.PauseUntil:
             return
         await update_presence()
@@ -375,7 +376,7 @@ async def presence_thread():
 async def heartbeat_thread():
     global Web, NASCClient, RunSettings
     if RunSettings.Running:
-        await asyncio.sleep(30)
+        await asyncio.sleep(1)
         Web.SetActive(RunSettings.active)
         toggle, run = Web.GetBotSettings()
         if toggle:
@@ -407,7 +408,7 @@ async def main(client):
     flist = []
     flist.extend(await NASCClient.GetAllFriends())
     for r in flist:
-        p = friend_functions.process_friend.from_pid(r.principal_id, 1200)
+        p = friend_functions.process_friend.from_pid(r.pid, 1200)
         if not r.is_complete:
             FriendList.added.append(p)
         else:
